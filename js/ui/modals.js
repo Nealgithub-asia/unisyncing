@@ -44,8 +44,9 @@ export function renderQuestionsList() {
 
 export function renderModals() {
   const theme = getTheme(state.darkMode);
+  
+  // Existing modals + New Registration and Details modals
   const modalsHTML = `
-    <!-- Signup Modal -->
     <div id="signup-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.4); z-index: 1000;" onclick="closeSignupModalOnBackdrop(event)">
       <div class="rounded-2xl p-8 max-w-md w-full slide-in" style="background: ${theme.backgroundColor}; border: 1px solid #e5e7eb;" onclick="event.stopPropagation()">
         <h3 class="font-bold mb-6" style="font-size: ${theme.baseSize * 1.6}px; color: ${theme.textColor};">Sign up</h3>
@@ -76,7 +77,6 @@ export function renderModals() {
       </div>
     </div>
 
-    <!-- Create Event/Club Modal -->
     <div id="create-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.4); z-index: 1000;" onclick="closeModalOnBackdrop(event)">
       <div class="rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto slide-in" style="background: ${theme.backgroundColor}; border: 1px solid #e5e7eb;" onclick="event.stopPropagation()">
         <h3 class="font-bold mb-6" style="font-size: ${theme.baseSize * 1.6}px; color: ${theme.textColor};">Create ${state.currentTab === 'organizations' ? 'organization' : 'event'}</h3>
@@ -117,27 +117,16 @@ export function renderModals() {
               <label class="block mb-2 font-medium" style="font-size: ${theme.baseSize * 0.93}px; color: ${theme.textColor};" for="description">Description</label>
               <textarea id="description" required rows="3" class="w-full px-4 py-2.5 rounded-lg" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px;" placeholder="${state.currentTab === 'organizations' ? 'Organization' : 'Event'} details"></textarea>
             </div>
-            
             <div id="club-members-field" style="${state.currentTab === 'organizations' ? 'display: none;' : ''}">
               <label class="flex items-center cursor-pointer" style="font-size: ${theme.baseSize * 0.93}px; color: ${theme.textColor};">
-                <input 
-                  type="checkbox" 
-                  id="club-members-only"
-                  class="mr-3"
-                  style="width: 18px; height: 18px; cursor: pointer;">
+                <input type="checkbox" id="club-members-only" class="mr-3" style="width: 18px; height: 18px; cursor: pointer;">
                 Only for organization members
               </label>
             </div>
-            
-            <button 
-              type="button" 
-              onclick="openQuestionsModal()"
-              class="w-full px-4 py-2.5 rounded-lg font-medium"
-              style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px; ${state.currentTab === 'organizations' ? 'display: none;' : ''}">
+            <button type="button" onclick="openQuestionsModal()" class="w-full px-4 py-2.5 rounded-lg font-medium" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px; ${state.currentTab === 'organizations' ? 'display: none;' : ''}">
               Add questions
             </button>
           </div>
-
           <div class="flex gap-3 mt-8">
             <button type="button" onclick="closeCreateModal()" class="flex-1 px-4 py-2.5 rounded-lg font-medium" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px;">
               Cancel
@@ -150,21 +139,13 @@ export function renderModals() {
       </div>
     </div>
 
-    <!-- Questions Modal -->
     <div id="questions-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.4); z-index: 1001;" onclick="closeQuestionsModalOnBackdrop(event)">
       <div class="rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto slide-in" style="background: ${theme.backgroundColor}; border: 1px solid #e5e7eb;" onclick="event.stopPropagation()">
         <h3 class="font-bold mb-6" style="font-size: ${theme.baseSize * 1.6}px; color: ${theme.textColor};">Add Questions</h3>
-        
         <div id="questions-list" class="space-y-4 mb-4"></div>
-        
-        <button 
-          type="button" 
-          onclick="addQuestion()"
-          class="w-full px-4 py-2.5 rounded-lg font-medium mb-6"
-          style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px;">
+        <button type="button" onclick="addQuestion()" class="w-full px-4 py-2.5 rounded-lg font-medium mb-6" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px;">
           + Add Question
         </button>
-
         <div class="flex gap-3">
           <button type="button" onclick="closeQuestionsModal()" class="flex-1 px-4 py-2.5 rounded-lg font-medium" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px;">
             Cancel
@@ -173,6 +154,31 @@ export function renderModals() {
             Save
           </button>
         </div>
+      </div>
+    </div>
+
+    <div id="registration-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.4); z-index: 1000;" onclick="closeRegistrationModalOnBackdrop(event)">
+      <div class="rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto slide-in" style="background: ${theme.backgroundColor}; border: 1px solid #e5e7eb;" onclick="event.stopPropagation()">
+        <h3 class="font-bold mb-6" style="font-size: ${theme.baseSize * 1.6}px; color: ${theme.textColor};">Register for Event</h3>
+        <form id="registration-form" onsubmit="handleRegistration(event)">
+          <div id="registration-questions" class="space-y-5">
+            </div>
+          <div class="flex gap-3 mt-8">
+            <button type="button" onclick="closeRegistrationModal()" class="flex-1 px-4 py-2.5 rounded-lg font-medium" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.93}px;">
+              Cancel
+            </button>
+            <button type="submit" id="register-btn" class="flex-1 px-4 py-2.5 rounded-lg font-medium" style="background: ${theme.primaryAction}; color: ${theme.backgroundColor}; font-size: ${theme.baseSize * 0.93}px;">
+              Register
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="event-details-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.4); z-index: 1000;" onclick="closeEventDetailsModalOnBackdrop(event)">
+      <div class="rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto slide-in" style="background: ${theme.backgroundColor}; border: 1px solid #e5e7eb;" onclick="event.stopPropagation()">
+        <div id="event-details-content">
+          </div>
       </div>
     </div>
   `;

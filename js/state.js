@@ -8,7 +8,8 @@ export const state = {
   // Transient UI state
   eventQuestions: [],
   currentEditingEventId: null,
-  selectedEventForDetails: null
+  selectedEventForDetails: null,
+  currentRegistrationEventId: null // Added this line
 };
 
 export function setState(key, value) {
