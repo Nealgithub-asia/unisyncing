@@ -66,6 +66,7 @@ export function renderModals() {
               Sign up
             </button>
           </div>
+          <p id="auth-toggle-text" class="mt-4 text-center text-sm">Already have an account? <a href="#" onclick="toggleAuthMode()">Log In</a></p>
         </form>
       </div>
     </div>
