@@ -4,15 +4,15 @@ import { state, setState } from './state.js';
 import * as eventActions from './actions/events.js';
 import * as clubActions from './actions/clubs.js';
 import * as authActions from './actions/auth.js';
-// NEW: Import the firebase init function
-import { initFirebase } from './firebase.js';
 
 // --- Global Assignments for Inline Event Handlers ---
+// We explicitly assign these to window so HTML template strings can call them
 Object.assign(window, {
   ...eventActions,
   ...clubActions,
   ...authActions,
   
+  // UI State Actions
   switchTab: (tab) => {
     setState('currentTab', tab);
     renderApp();
@@ -27,6 +27,7 @@ Object.assign(window, {
     setState('selectedOrganization', searchText.toLowerCase());
     renderApp();
     
+    // Maintain focus on search input after re-render
     setTimeout(() => {
       const el = document.getElementById('org-search');
       if (el) {
@@ -44,37 +45,34 @@ Object.assign(window, {
 });
 
 // --- Initialization ---
-async function init() {
+function init() {
   const appElement = document.getElementById('app');
   
+  // 1. Show loading state immediately
   if (appElement) {
     appElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#666;">Loading UniSync...</div>';
   }
 
-  try {
-    console.log("Initializing UniSync...");
-    
-    // 1. Attempt to load from LocalStorage first (fast)
-    loadData();
-    
-    // 2. Initialize Firebase and fetch fresh data (async)
-    // This will override local data when finished
-    await initFirebase();
-
-    // 3. Render
-    renderApp();
-    console.log("UniSync rendered successfully.");
-  } catch (err) {
-    console.error("Critical error starting app:", err);
-    if (appElement) {
-      appElement.innerHTML = `<div style="padding:20px;color:red;font-family:sans-serif;">
-        <h3>Error Loading App</h3>
-        <pre>${err.message}</pre>
-      </div>`;
+  // 2. Small delay to ensure SDKs/DOM are settled, then render
+  setTimeout(() => {
+    try {
+      console.log("Initializing UniSync...");
+      loadData();
+      renderApp();
+      console.log("UniSync rendered successfully.");
+    } catch (err) {
+      console.error("Critical error starting app:", err);
+      if (appElement) {
+        appElement.innerHTML = `<div style="padding:20px;color:red;font-family:sans-serif;">
+          <h3>Error Loading App</h3>
+          <pre>${err.message}</pre>
+        </div>`;
+      }
     }
-  }
+  }, 50);
 }
 
+// Robust DOM Ready Check
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
