@@ -1,6 +1,7 @@
 import { state } from '../state.js';
 import { addEventToFirestore, updateEventInFirestore } from '../storage.js';
 import { renderApp } from '../ui/appShell.js';
+import { openRegistrationModal } from './events.js';
 
 export async function joinClub(clubName) {
   if (!state.currentUser) {
@@ -10,6 +11,15 @@ export async function joinClub(clubName) {
 
   let club = state.allEvents.find(e => e.isClub && e.title === clubName);
   
+  // Questions for the club application
+  const applicationQuestions = [
+    { id: 'fullname', question: 'Full Name', required: true, yesNoType: false },
+    { id: 'studentId', question: 'Student ID', required: true, yesNoType: false },
+    { id: 'department', question: 'Department', required: true, yesNoType: false },
+    { id: 'year', question: 'Year of Study', required: true, yesNoType: false },
+    { id: 'reason', question: 'Why do you want to join this organization?', required: true, yesNoType: false }
+  ];
+
   if (!club) {
     // Create new club if it doesn't exist yet
     let category = 'Social';

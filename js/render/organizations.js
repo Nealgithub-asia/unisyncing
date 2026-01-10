@@ -13,8 +13,15 @@ export function renderOrganizationsList() {
   return allClubNames.map(clubName => {
     const existingClub = clubsFromData.find(e => e.title === clubName);
     const members = existingClub?.clubMembers ? JSON.parse(existingClub.clubMembers) : [];
-    const memberCount = members.length;
-    const isMember = members.some(m => m.userId === 'currentUser');
+    
+    // Filter pending members for count display
+    const activeMembers = members.filter(m => m.status !== 'pending');
+    const memberCount = activeMembers.length;
+    
+    // Check current user status
+    const currentUserRecord = members.find(m => m.userId === 'currentUser');
+    const isApplied = currentUserRecord && currentUserRecord.status === 'pending';
+    const isMember = currentUserRecord && !isApplied; // "Member" means status is undefined (legacy) or 'approved'
 
     let category = existingClub?.category || 'Social';
     if (!existingClub) {
@@ -58,6 +65,13 @@ export function renderOrganizationsList() {
             <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor"/>
           </svg>
           <span>Member</span>
+        </button>
+      ` : isApplied ? `
+        <button class="w-full px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border: 1px solid #e5e7eb; font-size: ${theme.baseSize * 0.87}px;" onclick="leaveClub('${clubName}')">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor"/>
+          </svg>
+          <span>Applied</span>
         </button>
       ` : `
         <button onclick="joinClub('${clubName}')" class="w-full px-4 py-2 rounded-lg font-medium" style="background: ${theme.primaryAction}; color: ${theme.backgroundColor}; font-size: ${theme.baseSize * 0.87}px;">
