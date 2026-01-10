@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UniSync - Campus Events</title>
   
-  <!-- Required Platform SDKs -->
-  <!-- <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
-  <script src="/_sdk/element_sdk.js" type="text/javascript"></script> -->
-  
   <!-- Styles -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -22,7 +18,29 @@
   <div id="app" class="h-full w-full" style="height: 100%;"></div>
   <div id="modals-container"></div>
   
-  <!-- Main Application Entry -->
-  <script type="module" src="js/app.js"></script>
+  <!-- ERROR CHECKER: Catches setup issues and shows them on screen -->
+  <script>
+    window.addEventListener('error', function(e) {
+      // Ignore resizing errors or minor warnings
+      if (e.message && (e.message.includes('import') || e.message.includes('module') || e.message.includes('not defined'))) {
+        document.body.innerHTML = `
+          <div style="padding: 40px; font-family: sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; background: #fff; color: #333;">
+            <h2 style="color: #dc2626; border-bottom: 2px solid #dc2626; padding-bottom: 10px;">Setup Error Detected</h2>
+            <p>The app could not start. Use these steps to fix it:</p>
+            <ol style="background: #f3f4f6; padding: 20px 40px; border-radius: 8px;">
+              <li style="margin-bottom: 10px;">Open your terminal in this folder.</li>
+              <li style="margin-bottom: 10px;">Run <code>npm install</code> (to get the Firebase tools).</li>
+              <li style="margin-bottom: 10px;">Run <code>npm run dev</code>.</li>
+              <li style="margin-bottom: 10px;">Open the <strong>Local</strong> link shown in the terminal (usually http://localhost:3000).</li>
+            </ol>
+            <p style="font-size: 0.9em; color: #666;"><strong>Technical Error:</strong> ${e.message}</p>
+          </div>
+        `;
+      }
+    });
+  </script>
+
+  <!-- Main Application Entry - Note the "./" for safer relative pathing -->
+  <script type="module" src="./js/app.js"></script>
  </body>
 </html>

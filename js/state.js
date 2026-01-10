@@ -1,5 +1,6 @@
 export const state = {
   allEvents: [],
+  currentUser: null, // New: Tracks the logged-in user
   currentTab: 'discover',
   selectedCategory: 'all',
   selectedOrganization: 'all',
@@ -9,7 +10,7 @@ export const state = {
   eventQuestions: [],
   currentEditingEventId: null,
   selectedEventForDetails: null,
-  currentRegistrationEventId: null // Added this line
+  currentRegistrationEventId: null
 };
 
 export function setState(key, value) {

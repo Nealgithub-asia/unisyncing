@@ -1,9 +1,14 @@
 import { state } from '../state.js';
-import { saveData } from '../storage.js';
+import { addEventToFirestore, updateEventInFirestore } from '../storage.js';
 import { renderApp } from '../ui/appShell.js';
 import { openRegistrationModal } from './events.js';
 
-export function joinClub(clubName) {
+export async function joinClub(clubName) {
+  if (!state.currentUser) {
+    alert("Please sign in to join clubs.");
+    return;
+  }
+
   let club = state.allEvents.find(e => e.isClub && e.title === clubName);
   
   // Questions for the club application
@@ -16,48 +21,55 @@ export function joinClub(clubName) {
   ];
 
   if (!club) {
+    // Create new club if it doesn't exist yet
     let category = 'Social';
     if (clubName.includes('Computer') || clubName.includes('IEEE')) category = 'Academic';
     if (clubName.includes('Sports')) category = 'Sports';
     if (clubName.includes('Drama')) category = 'Cultural';
     if (clubName.includes('Debate')) category = 'Academic';
 
-    club = {
-      id: Date.now().toString(),
+    const newClub = {
       title: clubName,
       organization: clubName,
       category: category,
-      date: '',
-      time: '',
-      location: 'Main Campus',
       description: `Official ${clubName} of the college`,
-      questions: JSON.stringify(applicationQuestions),
-      registrations: JSON.stringify({}),
-      isSubscribed: false,
       isClub: true,
-      clubMembers: JSON.stringify([]),
-      createdAt: new Date().toISOString()
+      clubMembers: JSON.stringify([{ 
+        userId: state.currentUser.uid, 
+        joinedAt: new Date().toISOString() 
+      }]),
+      createdAt: new Date().toISOString(),
+      creatorId: state.currentUser.uid
     };
-    state.allEvents.push(club);
+    await addEventToFirestore(newClub);
   } else {
-    // Ensure existing clubs have the questions if they try to join
-    if (!club.questions || club.questions === '[]') {
-      club.questions = JSON.stringify(applicationQuestions);
-    }
-  }
+    // Join existing club
+    const members = club.clubMembers ? JSON.parse(club.clubMembers) : [];
+    
+    // Check if already member
+    if (members.some(m => m.userId === state.currentUser.uid)) return;
 
-  // Open the modal to ask questions instead of immediate join
-  openRegistrationModal(club.id);
+    members.push({ 
+      userId: state.currentUser.uid, 
+      joinedAt: new Date().toISOString() 
+    });
+
+    await updateEventInFirestore(club.id, {
+      clubMembers: JSON.stringify(members)
+    });
+  }
 }
 
-export function leaveClub(clubName) {
+export async function leaveClub(clubName) {
+  if (!state.currentUser) return;
+
   const club = state.allEvents.find(e => e.isClub && e.title === clubName);
   if (!club) return;
 
   const members = club.clubMembers ? JSON.parse(club.clubMembers) : [];
-  const filteredMembers = members.filter(m => m.userId !== 'currentUser');
-  club.clubMembers = JSON.stringify(filteredMembers);
+  const filteredMembers = members.filter(m => m.userId !== state.currentUser.uid);
 
-  saveData();
-  renderApp();
+  await updateEventInFirestore(club.id, {
+    clubMembers: JSON.stringify(filteredMembers)
+  });
 }
