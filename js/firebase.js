@@ -23,7 +23,11 @@ try {
   auth = getAuth(app);
   googleProvider = new GoogleAuthProvider();
 } catch (error) {
-  console.error("Firebase initialization failed. Check your .env file.", error);
+  console.error("Firebase initialization failed.", error);
+  // Optional: You could alert the user here so they know why the site is broken
+  if (typeof window !== 'undefined') {
+    alert("Site Configuration Error: Check console for details.");
+  }
 }
 
 export { db, auth, googleProvider };
