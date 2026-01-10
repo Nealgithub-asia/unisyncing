@@ -1,18 +1,18 @@
-import { loadData } from './storage.js';
+import { initRealtimeListener } from './storage.js';
 import { renderApp } from './ui/appShell.js';
 import { state, setState } from './state.js';
+import { auth } from './firebase.js';
+import { onAuthStateChanged } from "firebase/auth";
 import * as eventActions from './actions/events.js';
 import * as clubActions from './actions/clubs.js';
 import * as authActions from './actions/auth.js';
 
 // --- Global Assignments for Inline Event Handlers ---
-// We explicitly assign these to window so HTML template strings can call them
 Object.assign(window, {
   ...eventActions,
   ...clubActions,
   ...authActions,
   
-  // UI State Actions
   switchTab: (tab) => {
     setState('currentTab', tab);
     renderApp();
@@ -27,13 +27,11 @@ Object.assign(window, {
     setState('selectedOrganization', searchText.toLowerCase());
     renderApp();
     
-    // Maintain focus on search input after re-render
     setTimeout(() => {
       const el = document.getElementById('org-search');
       if (el) {
         el.focus();
-        const len = el.value.length;
-        try { el.setSelectionRange(len, len); } catch(e) {}
+        try { el.setSelectionRange(el.value.length, el.value.length); } catch(e) {}
       }
     }, 0);
   },
@@ -48,31 +46,24 @@ Object.assign(window, {
 function init() {
   const appElement = document.getElementById('app');
   
-  // 1. Show loading state immediately
+  // Show loading state initially
   if (appElement) {
-    appElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#666;">Loading UniSync...</div>';
+    appElement.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;color:#666;">Loading UniSync...</div>';
   }
 
-  // 2. Small delay to ensure SDKs/DOM are settled, then render
-  setTimeout(() => {
-    try {
-      console.log("Initializing UniSync...");
-      loadData();
-      renderApp();
-      console.log("UniSync rendered successfully.");
-    } catch (err) {
-      console.error("Critical error starting app:", err);
-      if (appElement) {
-        appElement.innerHTML = `<div style="padding:20px;color:red;font-family:sans-serif;">
-          <h3>Error Loading App</h3>
-          <pre>${err.message}</pre>
-        </div>`;
-      }
-    }
-  }, 50);
+  // 1. Listen for Auth Changes
+  onAuthStateChanged(auth, (user) => {
+    state.currentUser = user;
+    console.log("Auth State Changed:", user ? user.email : "Logged out");
+    
+    // 2. Start Data Listener
+    initRealtimeListener();
+    
+    // 3. Render
+    renderApp();
+  });
 }
 
-// Robust DOM Ready Check
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

@@ -5,10 +5,28 @@ import { renderEventsList } from '../render/events.js';
 import { renderCalendarList } from '../render/calendar.js';
 import { renderOrganizationsList } from '../render/organizations.js';
 import { renderModals } from './modals.js';
+import { handleGoogleLogin, handleLogout, openSignupModal } from '../actions/auth.js';
 
 export function renderApp() {
   const theme = getTheme(state.darkMode);
   const baseFontStack = 'system-ui, -apple-system, sans-serif';
+  const user = state.currentUser;
+
+  // Augment events with "isSubscribed" based on current user
+  if (state.allEvents) {
+    state.allEvents.forEach(event => {
+      if (event.registrations) {
+        const regs = typeof event.registrations === 'string' ? JSON.parse(event.registrations) : event.registrations;
+        event.isSubscribed = user && regs[user.uid] ? true : false;
+      }
+      // For clubs
+      if (event.clubMembers) {
+        const members = typeof event.clubMembers === 'string' ? JSON.parse(event.clubMembers) : event.clubMembers;
+        // Logic for renderOrganizationsList usually checks specific member IDs, 
+        // but we can help it by ensuring data consistency here if needed.
+      }
+    });
+  }
 
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -27,15 +45,29 @@ export function renderApp() {
               onclick="openCreateModal()">
               Create ${state.currentTab === 'organizations' ? 'organization' : 'event'}
             </button>
-            <button 
-              class="flex items-center justify-center rounded-full"
-              style="width: 40px; height: 40px; border: 2px solid ${theme.primaryAction}; background: ${theme.backgroundColor};"
-              onclick="openSignupModal()"
-              title="Sign up">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 8C10.21 8 12 6.21 12 4C12 1.79 10.21 0 8 0C5.79 0 4 1.79 4 4C4 6.21 5.79 8 8 8ZM8 10C5.33 10 0 11.34 0 14V16H16V14C16 11.34 10.67 10 8 10Z" fill="${theme.primaryAction}"/>
-              </svg>
-            </button>
+            
+            ${user ? `
+              <div class="flex items-center gap-3">
+                 <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold border-2 border-white">
+                    ${(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                 </div>
+                 <button 
+                  onclick="handleLogout()"
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors border border-white/40">
+                  Logout
+                </button>
+              </div>
+            ` : `
+              <button 
+                class="flex items-center justify-center rounded-full"
+                style="width: 40px; height: 40px; border: 2px solid ${theme.primaryAction}; background: ${theme.backgroundColor};"
+                onclick="openSignupModal()"
+                title="Sign up / Login">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 8C10.21 8 12 6.21 12 4C12 1.79 10.21 0 8 0C5.79 0 4 1.79 4 4C4 6.21 5.79 8 8 8ZM8 10C5.33 10 0 11.34 0 14V16H16V14C16 11.34 10.67 10 8 10Z" fill="${theme.primaryAction}"/>
+                </svg>
+              </button>
+            `}
           </div>
         </div>
       </header>
