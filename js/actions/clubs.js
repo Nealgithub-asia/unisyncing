@@ -33,25 +33,30 @@ export async function handleClubApplication(event) {
   const btn = document.getElementById('apply-btn');
   btn.textContent = 'Submitting...'; btn.disabled = true;
 
+  // Domain Check
+  if (club.domain && state.currentUser.email && state.currentUser.email.split('@')[1] !== club.domain) {
+    alert(`You must have a @${club.domain} email address to join this organization.`);
+    btn.textContent = 'Submit'; btn.disabled = false;
+    return;
+  }
+
   // Add member to club
   const members = club.clubMembers ? JSON.parse(club.clubMembers) : [];
   if (!members.some(m => m.userId === state.currentUser.uid)) {
     members.push({
         userId: state.currentUser.uid,
-        joinedAt: new Date().toISOString(),
-        status: 'pending', // Mark as pending application
-        applicationData: {
-            reason: document.getElementById('app-reason').value,
-            name: document.getElementById('app-name').value,
-            email: document.getElementById('app-email').value
-        }
+        email: state.currentUser.email,
+        name: document.getElementById('app-name').value,
+        reason: document.getElementById('app-reason').value,
+        status: 'pending',
+        appliedAt: new Date().toISOString()
     });
     
     await updateEventInFirestore(club.id, { clubMembers: JSON.stringify(members) });
   }
 
   closeClubApplicationModal();
-  alert("Application submitted!");
+  alert("Application submitted for admin review!");
   btn.disabled = false;
   btn.textContent = 'Submit';
 }

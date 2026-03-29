@@ -5,7 +5,7 @@ import { formatDate } from '../utils.js';
 export function renderEventsList() {
   const theme = getTheme(state.darkMode);
   
-  let filteredEvents = state.allEvents.filter(e => !e.isClub);
+  let filteredEvents = state.allEvents.filter(e => !e.isClub && e.approvalStatus !== 'pending');
   
   if (state.selectedCategory !== 'all') {
     filteredEvents = filteredEvents.filter(e => e.category.toLowerCase() === state.selectedCategory);

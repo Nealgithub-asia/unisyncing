@@ -85,14 +85,37 @@ export async function handleRegistration(event) {
   const btn = document.getElementById('register-btn');
   btn.textContent = 'Processing...'; btn.disabled = true;
 
-  const registrations = eventToUpdate.registrations ? JSON.parse(eventToUpdate.registrations) : {};
-  registrations[state.currentUser.uid] = {
-    userId: state.currentUser.uid,
-    userName: state.currentUser.displayName || state.currentUser.email,
-    registeredAt: new Date().toISOString()
-  };
+  if (eventToUpdate.isClub) {
+    if (eventToUpdate.domain && state.currentUser.email && state.currentUser.email.split('@')[1] !== eventToUpdate.domain) {
+      alert(`You must have a @${eventToUpdate.domain} email address to join this organization.`);
+      btn.textContent = 'Submit Application';
+      btn.disabled = false;
+      return;
+    }
+    const members = eventToUpdate.clubMembers ? JSON.parse(eventToUpdate.clubMembers) : [];
+    const nameInput = document.querySelector('input[name="name"]');
+    const reasonInput = document.querySelector('textarea[name="reason"]');
+    
+    members.push({
+      userId: state.currentUser.uid,
+      email: state.currentUser.email,
+      name: nameInput ? nameInput.value : (state.currentUser.displayName || state.currentUser.email),
+      reason: reasonInput ? reasonInput.value : '',
+      status: 'pending',
+      appliedAt: new Date().toISOString()
+    });
+    await updateEventInFirestore(eventId, { clubMembers: JSON.stringify(members) });
+    alert("Application submitted for admin review!");
+  } else {
+    const registrations = eventToUpdate.registrations ? JSON.parse(eventToUpdate.registrations) : {};
+    registrations[state.currentUser.uid] = {
+      userId: state.currentUser.uid,
+      userName: state.currentUser.displayName || state.currentUser.email,
+      registeredAt: new Date().toISOString()
+    };
+    await updateEventInFirestore(eventId, { registrations: JSON.stringify(registrations) });
+  }
 
-  await updateEventInFirestore(eventId, { registrations: JSON.stringify(registrations) });
   closeRegistrationModal();
   btn.disabled = false;
 }
@@ -132,18 +155,155 @@ function renderEventDetailsModalContent(event) {
   const isSubscribed = state.currentUser && event.registrations && JSON.parse(event.registrations)[state.currentUser.uid];
   const config = defaultConfig; // Simplified config access
   
+  let adminHtml = '';
+  if (event.isClub && state.currentUser && event.admins?.includes(state.currentUser.email)) {
+    const members = event.clubMembers ? JSON.parse(event.clubMembers) : [];
+    const pendingMembers = members.filter(m => m.status === 'pending');
+    const activeMembers = members.filter(m => m.status === 'approved');
+    
+    // Pending events for this club
+    const pendingEvents = state.allEvents.filter(e => !e.isClub && e.organization === event.title && e.approvalStatus === 'pending');
+
+    adminHtml = `
+      <div class="mt-6 border-t pt-4">
+        <h4 class="font-bold text-lg mb-3" style="color: ${config.text_color}">Admin Dashboard</h4>
+        
+        <div class="mb-4 bg-white p-3 rounded border">
+          <details>
+            <summary class="font-semibold text-md cursor-pointer select-none" style="color: ${config.text_color}">Active Members (${activeMembers.length})</summary>
+            <div class="mt-3 space-y-2">
+              ${activeMembers.map(m => {
+                const mIsAdmin = event.admins?.includes(m.email);
+                return `
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-200">
+                  <div>
+                    <p class="font-medium text-sm text-gray-900">${m.name} ${mIsAdmin ? '<span class="text-xs text-blue-600 font-bold ml-1">(Admin)</span>' : ''}</p>
+                    <p class="text-xs text-gray-500">${m.email}</p>
+                  </div>
+                  <div class="flex gap-2">
+                    ${!mIsAdmin ? `<button onclick="promoteToAdmin('${event.id}', '${m.email}')" class="px-2 py-1 bg-gray-800 text-white rounded text-xs hover:bg-black">Make Admin</button>` : ''}
+                    <button onclick="removeMember('${event.id}', '${m.userId}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">Remove</button>
+                  </div>
+                </div>
+                `;
+              }).join('')}
+              ${activeMembers.length === 0 ? '<p class="text-sm text-gray-500">No active members yet.</p>' : ''}
+            </div>
+          </details>
+        </div>
+
+        <div class="mb-4">
+          <h5 class="font-semibold text-md mb-2" style="color: ${config.text_color}">Pending Members (${pendingMembers.length})</h5>
+          ${pendingMembers.map(m => `
+            <div class="flex justify-between items-center bg-gray-50 p-2 rounded mb-2 border border-gray-200">
+              <div>
+                <p class="font-medium text-sm text-gray-900">${m.name}</p>
+                <p class="text-xs text-gray-500">${m.email}</p>
+                <p class="text-xs italic text-gray-600 mt-1">"${m.reason}"</p>
+              </div>
+              <button onclick="approveMember('${event.id}', '${m.userId}')" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">Approve</button>
+            </div>
+          `).join('')}
+          ${pendingMembers.length === 0 ? '<p class="text-sm text-gray-500">No pending members.</p>' : ''}
+        </div>
+
+        <div class="mb-4">
+          <h5 class="font-semibold text-md mb-2" style="color: ${config.text_color}">Pending Events (${pendingEvents.length})</h5>
+          ${pendingEvents.map(e => `
+            <div class="flex justify-between items-center bg-gray-50 p-2 rounded mb-2 border border-gray-200">
+              <div>
+                <p class="font-medium text-sm text-gray-900">${e.title}</p>
+                <p class="text-xs text-gray-500">${e.date} at ${e.time}</p>
+              </div>
+              <button onclick="approveEvent('${e.id}')" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Approve</button>
+            </div>
+          `).join('')}
+          ${pendingEvents.length === 0 ? '<p class="text-sm text-gray-500">No pending events.</p>' : ''}
+        </div>
+
+        <div class="mb-2">
+          <h5 class="font-semibold text-md mb-2" style="color: ${config.text_color}">Add Admin</h5>
+          <div class="flex gap-2">
+            <input type="email" id="new-admin-email" placeholder="Admin Email" class="flex-1 p-2 border rounded text-sm text-gray-900 bg-white">
+            <button onclick="assignAdmin('${event.id}')" class="px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-black">Add</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
   container.innerHTML = `
-    <h3 class="font-bold mb-2 text-2xl">${event.title}</h3>
+    <h3 class="font-bold mb-2 text-2xl" style="color: ${config.text_color}">${event.title}</h3>
     <p class="mb-4 text-gray-500">${event.organization}</p>
-    <p class="mb-6">${event.description}</p>
+    <p class="mb-6" style="color: ${config.text_color}">${event.description}</p>
     <div class="flex gap-3">
-        <button onclick="closeEventDetailsModal()" class="flex-1 px-4 py-2 border rounded-lg">Close</button>
+        <button onclick="closeEventDetailsModal()" class="flex-1 px-4 py-2 border rounded-lg" style="color: ${config.text_color}">Close</button>
         ${isSubscribed 
             ? `<button onclick="unregisterFromEvent('${event.id}')" class="flex-1 px-4 py-2 bg-black text-white rounded-lg">Unregister</button>`
             : `<button onclick="openRegistrationModalFromDetails('${event.id}')" class="flex-1 px-4 py-2 bg-black text-white rounded-lg">Register</button>`
         }
     </div>
+    ${adminHtml}
   `;
+}
+
+export async function approveMember(clubId, userId) {
+  const club = state.allEvents.find(e => e.id === clubId);
+  if (!club) return;
+  const members = club.clubMembers ? JSON.parse(club.clubMembers) : [];
+  const member = members.find(m => m.userId === userId);
+  if (member) {
+    member.status = 'approved';
+    await updateEventInFirestore(clubId, { clubMembers: JSON.stringify(members) });
+  }
+}
+
+export async function approveEvent(eventId) {
+  await updateEventInFirestore(eventId, { approvalStatus: 'approved' });
+}
+
+export async function assignAdmin(clubId) {
+  const emailInput = document.getElementById('new-admin-email');
+  if (!emailInput || !emailInput.value) return;
+  const newEmail = emailInput.value.trim();
+
+  const club = state.allEvents.find(e => e.id === clubId);
+  if (!club) return;
+
+  const admins = club.admins || [];
+  if (!admins.includes(newEmail)) {
+    admins.push(newEmail);
+    await updateEventInFirestore(clubId, { admins });
+  }
+  emailInput.value = '';
+}
+
+export async function promoteToAdmin(clubId, email) {
+  const club = state.allEvents.find(e => e.id === clubId);
+  if (!club) return;
+  const admins = club.admins || [];
+  if (!admins.includes(email)) {
+    admins.push(email);
+    await updateEventInFirestore(clubId, { admins });
+  }
+}
+
+export async function removeMember(clubId, userId) {
+  const club = state.allEvents.find(e => e.id === clubId);
+  if (!club) return;
+  
+  let members = club.clubMembers ? JSON.parse(club.clubMembers) : [];
+  const memberObj = members.find(m => m.userId === userId);
+  
+  // Remove from clubMembers
+  members = members.filter(m => m.userId !== userId);
+  await updateEventInFirestore(clubId, { clubMembers: JSON.stringify(members) });
+  
+  // Also remove from admins if they are an admin
+  if (memberObj && club.admins && club.admins.includes(memberObj.email)) {
+    const updatedAdmins = club.admins.filter(a => a !== memberObj.email);
+    await updateEventInFirestore(clubId, { admins: updatedAdmins });
+  }
 }
 
 export function openDiscoverEventDetails(eventId) { openEventDetails(eventId); }
@@ -182,9 +342,19 @@ export async function handleCreateEvent(event) {
   btn.disabled = true;
 
   const isClub = state.currentTab === 'organizations';
+  const organizationName = isClub ? document.getElementById('title').value : document.getElementById('organization').value;
+  
+  let approvalStatus = 'approved';
+  if (!isClub) {
+    const parentOrg = state.allEvents.find(e => e.isClub && e.title === organizationName);
+    if (parentOrg && (!parentOrg.admins || !parentOrg.admins.includes(state.currentUser.email))) {
+      approvalStatus = 'pending';
+    }
+  }
+
   const newEvent = {
     title: document.getElementById('title').value,
-    organization: isClub ? document.getElementById('title').value : document.getElementById('organization').value,
+    organization: organizationName,
     category: document.getElementById('category').value,
     date: isClub ? '' : document.getElementById('date').value,
     time: isClub ? '' : document.getElementById('time').value,
@@ -194,6 +364,10 @@ export async function handleCreateEvent(event) {
     registrations: JSON.stringify({}),
     isClub: isClub,
     clubMembers: isClub ? JSON.stringify([]) : '',
+    domain: isClub ? (state.currentUser.email ? state.currentUser.email.split('@')[1] : null) : null,
+    admins: isClub ? [state.currentUser.email] : null,
+    creatorEmail: state.currentUser.email,
+    approvalStatus: isClub ? 'approved' : approvalStatus,
     createdAt: new Date().toISOString(),
     creatorId: state.currentUser.uid
   };
@@ -201,6 +375,9 @@ export async function handleCreateEvent(event) {
   await addEventToFirestore(newEvent);
   closeCreateModal();
   btn.disabled = false;
+  if (!isClub && approvalStatus === 'pending') {
+    alert("Event submitted for admin review!");
+  }
 }
 
 // FIX: Added the missing render function for questions

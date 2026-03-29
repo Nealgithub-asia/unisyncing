@@ -20,6 +20,7 @@ export function renderOrganizationsList() {
     const currentUserRecord = state.currentUser ? members.find(m => m.userId === state.currentUser.uid) : null;
     const isApplied = currentUserRecord && currentUserRecord.status === 'pending';
     const isMember = currentUserRecord && !isApplied;
+    const isAdmin = state.currentUser && existingClub?.admins?.includes(state.currentUser.email);
 
     let category = existingClub?.category || 'Social';
     if (!existingClub) {
@@ -31,6 +32,7 @@ export function renderOrganizationsList() {
     <div class="event-card rounded-xl p-5" style="background: ${theme.backgroundColor}; border-color: #e5e7eb;">
       <div class="mb-3">
         <span class="inline-block px-2.5 py-1 rounded-md text-xs font-medium" style="background: ${theme.surfaceColor}; color: ${theme.textColor};">${category}</span>
+        ${existingClub?.domain ? `<span class="inline-block ml-2 px-2.5 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800 border border-red-200">@${existingClub.domain} Only</span>` : ''}
       </div>
       <h3 class="font-semibold mb-2" style="font-size: ${theme.baseSize * 1.13}px; color: ${theme.textColor};">${clubName}</h3>
       <p class="mb-3" style="color: ${theme.secondaryAction};">Campus Organization</p>
@@ -50,6 +52,11 @@ export function renderOrganizationsList() {
           Apply to Join
         </button>
       `}
+      ${isAdmin ? `
+        <button onclick="openDiscoverEventDetails('${existingClub.id}')" class="w-full mt-2 px-4 py-2 rounded-lg font-medium bg-black text-white">
+          Manage Dashboard
+        </button>
+      ` : ''}
     </div>
   `;
   }).join('');

@@ -196,7 +196,6 @@ export function renderModals() {
           <form id="club-application-form" onsubmit="handleClubApplication(event)">
             <div class="space-y-4">
                 <input type="text" id="app-name" required placeholder="Full Name" class="w-full px-4 py-2.5 rounded-lg border" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border-color: #e5e7eb;">
-                <input type="email" id="app-email" required placeholder="Email" class="w-full px-4 py-2.5 rounded-lg border" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border-color: #e5e7eb;">
                 <textarea id="app-reason" required rows="3" placeholder="Why do you want to join?" class="w-full px-4 py-2.5 rounded-lg border" style="background: ${theme.surfaceColor}; color: ${theme.textColor}; border-color: #e5e7eb;"></textarea>
             </div>
             <div class="flex gap-3 mt-8">
